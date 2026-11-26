@@ -17,7 +17,14 @@ import noticeRoutes from './routes/notices.js';
 const app = express();
 app.set('trust proxy', 1); // behind Nginx on the VPS, so rate limits see the real visitor IP
 app.use(helmet());
-app.use(cors({ origin: process.env.CLIENT_ORIGIN, credentials: true }));
+app.use(ors({
+  origin: [
+    "https://vsgoi-erp.netlify.app"
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
+}));
 app.use(express.json({ limit: '1mb' }));
 
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
