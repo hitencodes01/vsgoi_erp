@@ -17,7 +17,7 @@ import noticeRoutes from './routes/notices.js';
 const app = express();
 app.set('trust proxy', 1); // behind Nginx on the VPS, so rate limits see the real visitor IP
 app.use(helmet());
-app.use(ors({
+app.use(cors({
   origin: [
     "https://vsgoi-erp.netlify.app"
   ],
