@@ -1,0 +1,262 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum StudentStatus {
+  ACTIVE
+  PASSED_OUT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
+model User {
+  id                    Int       @id @default(autoincrement())
+  email                 String    @unique
+  passwordHash          String
+  name                  String
+  role                  Role
+  active                Boolean   @default(true)
+  tokenVersion          Int       @default(0)
+  mustChangePassword    Boolean   @default(false)
+  phone                 String?
+  address               String?
+  city                  String?
+  dateOfBirth           DateTime? @db.Date
+  emergencyContactName  String?
+  emergencyContactPhone String?
+  bio                   String?   @db.VarChar(500)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  student               Student?
+  teacher               Teacher?
+  passwordResets        PasswordReset[]
+  notices               Notice[]
+}
+
+model PasswordReset {
+  id        Int       @id @default(autoincrement())
+  userId    Int
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// BTECH, BBA, BCA, MBA, Diploma, ITI
+model Course {
+  id          Int          @id @default(autoincrement())
+  code        String       @unique
+  name        String
+  semesters   Int
+  departments Department[]
+  subjects    Subject[]
+  students    Student[]
+  notices     Notice[]
+}
+
+// Optional branch inside a course: CSE, ME, EE... or ITI trades. Courses without branches have none.
+model Department {
+  id        Int       @id @default(autoincrement())
+  courseId  Int
+  course    Course    @relation(fields: [courseId], references: [id])
+  code      String
+  name      String
+  semesters Int?
+  students  Student[]
+  subjects  Subject[]
+
+  @@unique([courseId, code])
+}
+
+// Academic year such as 2026-27
+model Session {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique
+  isCurrent   Boolean      @default(false)
+  assignments Assignment[]
+  fees        FeeDemand[]
+}
+
+model Student {
+  id               Int           @id @default(autoincrement())
+  userId           Int           @unique
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollmentNo     String        @unique
+  courseId         Int
+  course           Course        @relation(fields: [courseId], references: [id])
+  departmentId     Int?
+  department       Department?   @relation(fields: [departmentId], references: [id])
+  semester         Int           @default(1)
+  section          String        @default("A") @db.VarChar(1)
+  status           StudentStatus @default(ACTIVE)
+  alternateContact String?
+  personalEmail    String?
+  fatherName       String?
+  motherName       String?
+  lastSchool       String?
+  attendance       Attendance[]
+  marks            Mark[]
+  fees             FeeDemand[]
+
+  @@index([courseId, departmentId, semester, section])
+}
+
+model Teacher {
+  id           Int          @id @default(autoincrement())
+  userId       Int          @unique
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeeCode String       @unique
+  assignments  Assignment[]
+}
+
+// A subject belongs to a course, an optional department and one semester.
+model Subject {
+  id           Int          @id @default(autoincrement())
+  code         String       @unique
+  name         String
+  credits      Int          @default(4)
+  courseId     Int
+  course       Course       @relation(fields: [courseId], references: [id])
+  departmentId Int?
+  department   Department?  @relation(fields: [departmentId], references: [id])
+  semester     Int
+  assignments  Assignment[]
+
+  @@index([courseId, departmentId, semester])
+}
+
+// Faculty teaches a subject to one section during a session.
+model Assignment {
+  id         Int          @id @default(autoincrement())
+  subjectId  Int
+  subject    Subject      @relation(fields: [subjectId], references: [id])
+  teacherId  Int
+  teacher    Teacher      @relation(fields: [teacherId], references: [id])
+  sessionId  Int
+  session    Session      @relation(fields: [sessionId], references: [id])
+  section    String       @db.VarChar(1)
+  lectures   Lecture[]
+  exams      Exam[]
+  attendance Attendance[]
+
+  @@unique([subjectId, sessionId, section])
+  @@index([teacherId])
+}
+
+model Lecture {
+  id           Int          @id @default(autoincrement())
+  assignmentId Int
+  assignment   Assignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  date         DateTime     @db.Date
+  startTime    String
+  endTime      String
+  room         String?
+  topic        String?
+  attendance   Attendance[]
+
+  @@index([assignmentId, date])
+  @@index([date])
+}
+
+// assignmentId and date are copied from the lecture so reports can group without joins.
+model Attendance {
+  id           Int              @id @default(autoincrement())
+  lectureId    Int
+  lecture      Lecture          @relation(fields: [lectureId], references: [id], onDelete: Cascade)
+  studentId    Int
+  student      Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  assignmentId Int
+  assignment   Assignment       @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  date         DateTime         @db.Date
+  status       AttendanceStatus
+
+  @@unique([lectureId, studentId])
+  @@index([date])
+  @@index([assignmentId, date])
+  @@index([studentId])
+}
+
+model Exam {
+  id           Int        @id @default(autoincrement())
+  assignmentId Int
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  name         String
+  maxMarks     Int
+  date         DateTime?  @db.Date
+  marks        Mark[]
+}
+
+model Mark {
+  id        Int     @id @default(autoincrement())
+  examId    Int
+  exam      Exam    @relation(fields: [examId], references: [id], onDelete: Cascade)
+  studentId Int
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  score     Float
+
+  @@unique([examId, studentId])
+}
+
+model FeeDemand {
+  id        Int       @id @default(autoincrement())
+  studentId Int
+  student   Student   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  sessionId Int
+  session   Session   @relation(fields: [sessionId], references: [id])
+  title     String
+  amount    Int
+  dueDate   DateTime  @db.Date
+  createdAt DateTime  @default(now())
+  payments  Payment[]
+
+  @@index([studentId])
+}
+
+model Payment {
+  id           Int       @id @default(autoincrement())
+  demandId     Int
+  demand       FeeDemand @relation(fields: [demandId], references: [id], onDelete: Cascade)
+  amount       Int
+  paidOn       DateTime  @db.Date
+  mode         String
+  reference    String?
+  recordedById Int?
+  createdAt    DateTime  @default(now())
+}
+
+model Notice {
+  id          Int      @id @default(autoincrement())
+  title       String
+  body        String   @db.Text
+  audience    String   @default("ALL")
+  courseId    Int?
+  course      Course?  @relation(fields: [courseId], references: [id])
+  createdById Int
+  createdBy   User     @relation(fields: [createdById], references: [id])
+  createdAt   DateTime @default(now())
+}
+
+model Setting {
+  key   String @id @db.VarChar(50)
+  value String
+}
