@@ -17,7 +17,7 @@ export function AuthProvider({ children }) {
   }, []);
 
   async function login(email, password) {
-    const d = await api('https://vsgoi-erp.onrender.com/auth/login', { method: 'POST', body: { email, password } });
+    const d = await api('/auth/login', { method: 'POST', body: { email, password } });
     localStorage.setItem('erp-token', d.token);
     setUser(d.user);
   }
