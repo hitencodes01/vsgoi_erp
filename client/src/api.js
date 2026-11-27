@@ -11,7 +11,7 @@ function expired(res, path) {
 }
 
 async function send(path, init) {
-  const res = await fetch(`https://vsgoi-erp.onrender.com/api${path}`, init);
+  const res = await fetch(`http://localhost:4000/api${path}`, init);
   const data = await res.json().catch(() => ({}));
   expired(res, path);
   if (!res.ok) throw new Error(data.error || 'Request failed.');
@@ -31,7 +31,7 @@ export const apiFile = (path, file) =>
 
 // Downloads a file the server generates (for example the Excel template).
 export async function download(path, filename) {
-  const res = await fetch(`'https://vsgoi-erp.onrender.com/api'${path}`, { headers: authHeader() });
+  const res = await fetch(`http://localhost:4000/api${path}`, { headers: authHeader() });
   expired(res, path);
   if (!res.ok) throw new Error('Could not download the file.');
   const url = URL.createObjectURL(await res.blob());
