@@ -31,7 +31,7 @@ export const apiFile = (path, file) =>
 
 // Downloads a file the server generates (for example the Excel template).
 export async function download(path, filename) {
-  const res = await fetch(`/api${path}`, { headers: authHeader() });
+  const res = await fetch(`'https://vsgoi-erp.onrender.com/api'${path}`, { headers: authHeader() });
   expired(res, path);
   if (!res.ok) throw new Error('Could not download the file.');
   const url = URL.createObjectURL(await res.blob());
