@@ -52,6 +52,8 @@ export async function listLectures({ assignmentIds, from, to }) {
     endTime: l.endTime,
     room: l.room,
     topic: l.topic,
+    suspended: l.suspended,
+    suspendReason: l.suspendReason ?? '',
     subject: `${l.assignment.subject.code} · ${l.assignment.subject.name}`,
     classLabel: classLabel({ course: l.assignment.subject.course, department: l.assignment.subject.department, semester: l.assignment.subject.semester, section: l.assignment.section }),
     teacher: l.assignment.teacher.user.name,

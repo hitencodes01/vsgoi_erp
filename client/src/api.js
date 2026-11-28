@@ -14,7 +14,7 @@ async function send(path, init) {
   const res = await fetch(`https://vsgoi-erp.onrender.com/api${path}`, init);
   const data = await res.json().catch(() => ({}));
   expired(res, path);
-  if (!res.ok) throw new Error(data.error || 'Request failed.');
+  if (!res.ok) throw Object.assign(new Error(data.error || 'Request failed.'), { status: res.status, code: data.code });
   return data;
 }
 

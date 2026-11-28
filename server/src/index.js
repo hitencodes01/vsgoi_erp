@@ -13,6 +13,7 @@ import importRoutes from './routes/import.js';
 import feeRoutes from './routes/fees.js';
 import examRoutes from './routes/exams.js';
 import noticeRoutes from './routes/notices.js';
+import coordinatorRoutes from './routes/coordinator.js';
 
 const app = express();
 app.set('trust proxy', 1); // behind Nginx on the VPS, so rate limits see the real visitor IP
@@ -52,6 +53,7 @@ app.use('/api/import', importRoutes);
 app.use('/api/fees', feeRoutes);
 app.use('/api/exams', examRoutes);
 app.use('/api/notices', noticeRoutes);
+app.use('/api/coordinator', coordinatorRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

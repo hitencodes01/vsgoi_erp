@@ -72,6 +72,7 @@ model Course {
   subjects    Subject[]
   students    Student[]
   notices     Notice[]
+  coordinators Coordinator[]
 }
 
 // Optional branch inside a course: CSE, ME, EE... or ITI trades. Courses without branches have none.
@@ -84,6 +85,7 @@ model Department {
   semesters Int?
   students  Student[]
   subjects  Subject[]
+  coordinators Coordinator[]
 
   @@unique([courseId, code])
 }
@@ -95,6 +97,7 @@ model Session {
   isCurrent   Boolean      @default(false)
   assignments Assignment[]
   fees        FeeDemand[]
+  coordinators Coordinator[]
 }
 
 model Student {
@@ -127,6 +130,26 @@ model Teacher {
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   employeeCode String       @unique
   assignments  Assignment[]
+  coordinators Coordinator[]
+}
+
+// A faculty member who looks after one section of a class (course + optional department + semester) for a session.
+// A faculty member is still just faculty: this only unlocks the "My class" screen. Departments can be empty, so uniqueness is checked in code.
+model Coordinator {
+  id           Int         @id @default(autoincrement())
+  teacherId    Int
+  teacher      Teacher     @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  sessionId    Int
+  session      Session     @relation(fields: [sessionId], references: [id])
+  courseId     Int
+  course       Course      @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  departmentId Int?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  semester     Int
+  section      String      @db.VarChar(1)
+
+  @@index([teacherId, sessionId])
+  @@index([sessionId, courseId, departmentId, semester])
 }
 
 // A subject belongs to a course, an optional department and one semester.
@@ -172,6 +195,8 @@ model Lecture {
   endTime      String
   room         String?
   topic        String?
+  suspended    Boolean      @default(false)
+  suspendReason String?     @db.VarChar(200)
   attendance   Attendance[]
 
   @@index([assignmentId, date])

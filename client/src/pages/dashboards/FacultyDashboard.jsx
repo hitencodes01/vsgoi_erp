@@ -4,7 +4,7 @@ import { RankList, RateBars, TrendChart } from '../../components/charts.jsx';
 import LectureList from '../../components/LectureList.jsx';
 
 export default function FacultyDashboard() {
-  const { data: d, loading, error } = useFetch('/dashboard/faculty');
+  const { data: d, loading, error, reload } = useFetch('/dashboard/faculty');
   return (
     <Status loading={loading} error={error}>
       {d && (
@@ -19,7 +19,7 @@ export default function FacultyDashboard() {
             <Kpi label="Faculty rank" value={d.kpis.rank ? `#${d.kpis.rank}` : '–'} hint={d.kpis.rank ? `of ${d.kpis.facultyCount}` : undefined} />
           </div>
           <Card title="My lectures" note="Past 7 days and next 7 days">
-            <LectureList lectures={d.lectures} today={d.today} canMark showTeacher={false} />
+            <LectureList lectures={d.lectures} today={d.today} canMark canSuspend onChange={reload} showTeacher={false} />
           </Card>
           <div className="grid2">
             <Card title="Class attendance, last 30 days"><TrendChart data={d.trend} xKey="date" /></Card>

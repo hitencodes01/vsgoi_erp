@@ -39,7 +39,13 @@ export default function EntityForm({ noun, base, listPath, backLabel, fields, bl
   const remove = () => {
     if (!window.confirm(`Delete this ${noun}?`)) return;
     s.run(async () => {
-      await api(`${base}/${id}`, { method: 'DELETE' });
+      try {
+        await api(`${base}/${id}`, { method: 'DELETE' });
+      } catch (e) {
+        // The server says "HAS_DATA" when real records (lectures, attendance, exams) hang off this item.
+        if (e.code !== 'HAS_DATA' || !window.confirm(`${e.message}\n\nDelete it anyway? All of those records are erased permanently.`)) throw e;
+        await api(`${base}/${id}?force=1`, { method: 'DELETE' });
+      }
       navigate(listPath);
     });
   };

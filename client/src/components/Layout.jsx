@@ -18,12 +18,15 @@ const NAV = {
 
 export default function Layout() {
   const { user, logout } = useAuth();
+  const base = NAV[user.role] || NAV.STUDENT;
+  // Coordinators are still faculty; they just get one extra page.
+  const items = user.isCoordinator ? [base[0], ['/my-class', 'My class'], ...base.slice(1)] : base;
   return (
     <div className="app">
       <aside className="side">
         <div className="logo"> <img src={logo} height={50} width={100} alt="" /></div>
         <nav aria-label="Main">
-          {(NAV[user.role] || NAV.STUDENT).map((item) =>
+          {items.map((item) =>
             typeof item === 'string' ? (
               <div key={item} className="nav-head">{item}</div>
             ) : (

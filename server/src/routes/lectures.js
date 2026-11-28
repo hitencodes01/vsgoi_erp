@@ -63,7 +63,8 @@ function input(req, res) {
 // Same faculty, same class (course + department + semester + section) or same room at overlapping times.
 async function findConflict({ assignment, date, startTime, endTime, room, ignoreId }) {
   const overlapping = await prisma.lecture.findMany({
-    where: { date, ...(ignoreId ? { id: { not: ignoreId } } : {}), startTime: { lt: endTime }, endTime: { gt: startTime } },
+    // A suspended lecture is not happening, so it does not block the faculty, class or room.
+    where: { date, suspended: false, ...(ignoreId ? { id: { not: ignoreId } } : {}), startTime: { lt: endTime }, endTime: { gt: startTime } },
     include: { assignment: { include: { subject: true } } },
   });
   const mine = assignment.subject;
@@ -98,7 +99,7 @@ router.post('/', manage, guard(async (req, res) => {
 
 async function lectureFor(req, res) {
   const id = idOf(req);
-  const l = id && (await prisma.lecture.findUnique({ where: { id }, include: { assignment: { include: { teacher: true } } } }));
+  const l = id && (await prisma.lecture.findUnique({ where: { id }, include: { assignment: { include: { teacher: true, subject: true } } } }));
   if (!l) return void fail(res, 'Lecture not found.', 404);
   if (req.user.role === 'TEACHER' && l.assignment.teacher.userId !== req.user.id) return void fail(res, 'You can only change your own lectures.', 403);
   return l;
@@ -107,7 +108,7 @@ async function lectureFor(req, res) {
 router.get('/:id', manage, guard(async (req, res) => {
   const l = await lectureFor(req, res);
   if (!l) return;
-  res.json({ item: { id: l.id, assignmentId: l.assignmentId, date: iso(l.date), startTime: l.startTime, endTime: l.endTime, room: l.room ?? '', topic: l.topic ?? '', marked: await hasAttendance(l.id) } });
+  res.json({ item: { id: l.id, assignmentId: l.assignmentId, date: iso(l.date), startTime: l.startTime, endTime: l.endTime, room: l.room ?? '', topic: l.topic ?? '', suspended: l.suspended, suspendReason: l.suspendReason ?? '', marked: await hasAttendance(l.id) } });
 }));
 
 router.put('/:id', manage, guard(async (req, res) => {
@@ -125,6 +126,23 @@ router.put('/:id', manage, guard(async (req, res) => {
   if (clash) return fail(res, clash, 409);
   await prisma.lecture.update({ where: { id: l.id }, data: { assignmentId: b.assignmentId, date: b.date, startTime: b.startTime, endTime: b.endTime, room: b.room, topic: b.topic } });
   res.json({ saved: true });
+}));
+
+// Suspend a lecture that will not take place (faculty on leave, holiday) without deleting it, or resume it.
+// Students see it as suspended, attendance cannot be marked for it and it is left out of the attendance numbers.
+router.patch('/:id/suspend', manage, guard(async (req, res) => {
+  const p = z.object({ suspended: z.boolean(), reason: z.string().trim().max(200, 'The reason is too long.').optional() }).safeParse(req.body);
+  if (!p.success) return fail(res, p.error.issues[0].message);
+  const l = await lectureFor(req, res);
+  if (!l) return;
+  if (p.data.suspended) {
+    if (await hasAttendance(l.id)) return fail(res, 'Attendance was already marked for this lecture, so it cannot be suspended.', 409);
+  } else {
+    const clash = await findConflict({ assignment: l.assignment, date: l.date, startTime: l.startTime, endTime: l.endTime, room: l.room, ignoreId: l.id });
+    if (clash) return fail(res, `It cannot be resumed. ${clash}`, 409);
+  }
+  await prisma.lecture.update({ where: { id: l.id }, data: { suspended: p.data.suspended, suspendReason: p.data.suspended ? p.data.reason || null : null } });
+  res.json({ suspended: p.data.suspended });
 }));
 
 router.delete('/:id', manage, guard(async (req, res) => {

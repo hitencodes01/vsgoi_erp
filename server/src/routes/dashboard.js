@@ -48,7 +48,7 @@ router.get('/admin', requireRole('ADMIN'), guard(async (req, res) => {
   const [students, faculty, lecturesToday, trendRows, aRows, sRows, courses, ranking, demanded, paid, notices] = await Promise.all([
     prisma.student.count({ where: { status: 'ACTIVE' } }),
     prisma.teacher.count(),
-    prisma.lecture.count({ where: { date: t, assignmentId: { in: ids } } }),
+    prisma.lecture.count({ where: { date: t, suspended: false, assignmentId: { in: ids } } }),
     prisma.attendance.groupBy({ by: ['date', 'status'], where: { date: { gte: from, lte: t }, assignmentId: { in: ids } }, _count: { _all: true } }),
     prisma.attendance.groupBy({ by: ['assignmentId', 'status'], where: { assignmentId: { in: ids } }, _count: { _all: true } }),
     prisma.attendance.groupBy({ by: ['studentId', 'status'], where: { assignmentId: { in: ids } }, _count: { _all: true } }),
@@ -111,8 +111,8 @@ router.get('/faculty', requireRole('TEACHER'), guard(async (req, res) => {
     threshold: settings.attendanceThreshold,
     kpis: {
       subjects: assignments.length,
-      lecturesToday: lectures.filter((l) => l.date === todayIso).length,
-      pendingMarking: lectures.filter((l) => l.date <= todayIso && !l.marked).length,
+      lecturesToday: lectures.filter((l) => l.date === todayIso && !l.suspended).length,
+      pendingMarking: lectures.filter((l) => l.date <= todayIso && !l.marked && !l.suspended).length,
       overallRate: rate(sumCounts([...byAssignment.values()])),
       rank: myIndex >= 0 ? myIndex + 1 : null,
       facultyCount: ranking.length,

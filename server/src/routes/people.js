@@ -37,6 +37,17 @@ const studentFields = {
   motherName: text(100, "Mother's name is too long."),
   lastSchool: text(150, 'Last school name is too long.'),
 };
+// The personal details a class coordinator may also change for the students of their class (see routes/coordinator.js).
+export const contactFields = {
+  phone: optPhone,
+  city: details.city,
+  address: details.address,
+  alternateContact: studentFields.alternateContact,
+  personalEmail: studentFields.personalEmail,
+  fatherName: studentFields.fatherName,
+  motherName: studentFields.motherName,
+  lastSchool: studentFields.lastSchool,
+};
 const aadhaar2 = z.union([z.string().regex(/^\d{2}$/, 'Enter the last 2 digits of Aadhaar, or leave it empty.'), z.literal('')]).optional();
 const employeeCode = z.string().trim().min(1, 'Enter the employee code.').max(30, 'Employee code is too long.');
 

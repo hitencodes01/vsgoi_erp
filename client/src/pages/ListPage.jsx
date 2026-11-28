@@ -39,8 +39,9 @@ const KINDS = {
   },
   fees: {
     title: 'Fees', path: '/fees', roles: A, add: '/fees/new', addLabel: 'New fee', edit: (r) => `/fees/${r.id}`, editLabel: 'Open',
-    cols: [['enrollmentNo', 'Enrollment No'], ['name', 'Name'], ['course', 'Course'], ['title', 'Fee'], ['amount', 'Amount', money], ['paid', 'Paid', money], ['balance', 'Balance', money], ['dueDate', 'Due'], ['status', 'Status']],
-    filters: [['course', 'Course'], ['status', 'Status'], ['title', 'Fee']],
+    cols: [['enrollmentNo', 'Enrollment No'], ['name', 'Name'], ['course', 'Course'], ['department', 'Dept'], ['year', 'Year'], ['semester', 'Sem'], ['section', 'Sec'], ['title', 'Fee'], ['amount', 'Amount', money], ['paid', 'Paid', money], ['balance', 'Balance', money], ['dueDate', 'Due'], ['status', 'Status']],
+    filters: [['course', 'Course'], ['department', 'Department'], ['year', 'Year'], ['semester', 'Semester'], ['section', 'Section'], ['status', 'Status'], ['title', 'Fee']],
+    search: ['name', 'enrollmentNo'], searchLabel: 'Search by name or enrollment no',
   },
   exams: {
     title: 'Exams', path: '/exams', roles: ['ADMIN', 'TEACHER'], add: '/exams/new', addLabel: 'New exam', edit: (r) => `/exams/${r.id}`, editLabel: 'Marks',
@@ -61,7 +62,7 @@ export default function ListPage({ kind }) {
 
   const all = data?.rows ?? [];
   const rows = all.filter(
-    (r) => Object.values(r).join(' ').toLowerCase().includes(q.toLowerCase()) && Object.entries(f).every(([k, v]) => !v || String(r[k]) === v)
+    (r) => (cfg.search ? cfg.search.map((k) => r[k]) : Object.values(r)).join(' ').toLowerCase().includes(q.trim().toLowerCase()) && Object.entries(f).every(([k, v]) => !v || String(r[k]) === v)
   );
   const options = (key) => [...new Set(all.map((r) => r[key]).filter((v) => v !== '' && v !== null && v !== undefined))].map(String).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
 
@@ -77,7 +78,7 @@ export default function ListPage({ kind }) {
       )}
       <Card title={`${rows.length} of ${all.length}`}>
         <div className="filters">
-          <label>Search<input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${cfg.title.toLowerCase()}`} /></label>
+          <label>{cfg.searchLabel ?? 'Search'}<input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={cfg.searchLabel ?? `Search ${cfg.title.toLowerCase()}`} /></label>
           {(cfg.filters ?? []).map(([key, label]) => (
             <label key={key}>{label}
               <select value={f[key] ?? ''} onChange={(e) => setF({ ...f, [key]: e.target.value })}>

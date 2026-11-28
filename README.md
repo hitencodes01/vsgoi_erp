@@ -7,11 +7,11 @@ The only rule that tells courses apart: *if a course has departments, a departme
 
 ## Roles
 - **Admin:** everything.
-- **Faculty:** their lectures, marking attendance, attendance charts and records, exams and marks, notices, top-faculty ranking.
+- **Faculty:** their lectures (can suspend and resume a lecture), marking attendance, attendance charts and records, exams and marks, notices, top-faculty ranking.
 - **Student:** attendance (by subject, weekly chart, records), timetable, results, fees, notices.
 
 ## Modules
-Login and forgot-password by email code (Gmail) · personal settings and change password · students, faculty, admins (add/edit/deactivate/reset password) · courses, departments, subjects (per course + department + semester) · faculty assignment (subject × section → faculty) · lecture scheduling with clash checks · lecture-wise attendance · exams and marks · fees and payments · notices · Excel import of students · promotion semester by semester · academic sessions (2026-27) and rules (minimum attendance, pass marks).
+Login and forgot-password by email code (Gmail) · personal settings and change password · students, faculty, admins (add/edit/deactivate/reset password) · courses, departments, subjects (per course + department + semester) · faculty assignment (subject × section → faculty, plus a class coordinator per section who gets a My class page) · lecture scheduling with clash checks · lecture-wise attendance · exams and marks · fees and payments · notices · Excel import of students · promotion semester by semester · academic sessions (2026-27) and rules (minimum attendance, pass marks).
 
 ## Run on your laptop
 Needs Node.js 20.6+ (22 LTS recommended) and MySQL 8 with an empty database named `vsgoi_erp`.

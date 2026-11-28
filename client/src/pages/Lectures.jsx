@@ -9,7 +9,7 @@ export default function Lectures() {
   const { user } = useAuth();
   const [f, setF] = useState({ from: '', to: '', assignmentId: '' });
   const qs = new URLSearchParams(Object.entries(f).filter(([, v]) => v)).toString();
-  const { data, loading, error } = useFetch(`/lectures?${qs}`);
+  const { data, loading, error, reload } = useFetch(`/lectures?${qs}`);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const manage = user.role === 'ADMIN' || user.role === 'TEACHER';
 
@@ -29,7 +29,7 @@ export default function Lectures() {
           {manage && <Link className="btn grow" to="/lectures/new">Schedule lecture</Link>}
         </div>
         <Status loading={loading && !data} error={error}>
-          {data && <LectureList lectures={data.lectures} today={data.today} canMark={manage} canEdit={manage} showTeacher={user.role !== 'TEACHER'} />}
+          {data && <LectureList lectures={data.lectures} today={data.today} canMark={manage} canEdit={manage} canSuspend={manage} onChange={reload} showTeacher={user.role !== 'TEACHER'} />}
         </Status>
       </Card>
     </>

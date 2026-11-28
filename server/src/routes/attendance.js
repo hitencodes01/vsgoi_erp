@@ -98,7 +98,7 @@ router.get('/lectures/:id', requireRole('ADMIN', 'TEACHER'), guard(async (req, r
       subject: `${a.subject.code} · ${a.subject.name}`,
       classLabel: classLabel({ course: a.subject.course, department: a.subject.department, semester: a.subject.semester, section: a.section }),
       date: iso(lecture.date), startTime: lecture.startTime, endTime: lecture.endTime, room: lecture.room,
-      editable: lecture.date <= today(), alreadyMarked: marked,
+      editable: lecture.date <= today() && !lecture.suspended, suspended: lecture.suspended, suspendReason: lecture.suspendReason ?? '', alreadyMarked: marked,
     },
     students,
   });
@@ -109,6 +109,7 @@ const saveSchema = z.object({ records: z.array(z.object({ studentId: z.number().
 router.put('/lectures/:id', requireRole('ADMIN', 'TEACHER'), guard(async (req, res) => {
   const lecture = await authorizedLecture(req, res);
   if (!lecture) return;
+  if (lecture.suspended) return fail(res, 'This lecture is suspended, so attendance cannot be marked. Resume it first.', 409);
   if (lecture.date > today()) return fail(res, 'You can only mark attendance for today or past lectures.');
   const p = saveSchema.safeParse(req.body);
   if (!p.success) return fail(res, 'Send a status for each student.');

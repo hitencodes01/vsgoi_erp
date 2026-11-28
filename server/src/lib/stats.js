@@ -36,7 +36,7 @@ export async function rankFaculty(sessionId) {
   const ids = assignments.map((a) => a.id);
   const [rows, held] = await Promise.all([
     prisma.attendance.groupBy({ by: ['assignmentId', 'status'], where: { assignmentId: { in: ids } }, _count: { _all: true } }),
-    prisma.lecture.groupBy({ by: ['assignmentId'], where: { assignmentId: { in: ids }, date: { lt: today() } }, _count: { _all: true } }),
+    prisma.lecture.groupBy({ by: ['assignmentId'], where: { assignmentId: { in: ids }, suspended: false, date: { lt: today() } }, _count: { _all: true } }),
   ]);
   const byAssignment = groupToMap(rows, 'assignmentId');
   const heldMap = new Map(held.map((h) => [h.assignmentId, h._count._all]));

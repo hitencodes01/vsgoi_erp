@@ -13,6 +13,7 @@ export default function LectureForm() {
   const existing = useFetch(editing ? `/lectures/${id}` : null);
   const [form, setForm] = useState({ assignmentId: '', date: '', startTime: '09:00', endTime: '10:00', room: '', topic: '', repeatWeeks: '0' });
   const [marked, setMarked] = useState(false);
+  const suspended = Boolean(existing.data?.item?.suspended);
   const s = useSaver();
 
   useEffect(() => {
@@ -57,6 +58,7 @@ export default function LectureForm() {
           <Card>
             {options.data.options.length === 0 && <p className="alert">No subjects are assigned yet. An admin must assign faculty to subjects first (Faculty assignment).</p>}
             <form onSubmit={submit} noValidate>
+              {suspended && <p className="alert">This lecture is suspended. Resume it from the lectures list when it is back on.</p>}
               {marked && <p className="alert">Attendance is already marked, so the subject and date are locked. You can still change the time, room or topic.</p>}
               <div className="form-grid">
                 <div className="field wide"><label htmlFor="assign">Subject and class</label>

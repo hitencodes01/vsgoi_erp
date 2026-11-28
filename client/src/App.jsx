@@ -20,6 +20,7 @@ import NoticeBoard from './pages/NoticeBoard.jsx';
 import { FeeDemandForm, FeeDetail, FeesRoute } from './pages/Fees.jsx';
 import { ExamForm, ExamMarks } from './pages/Exams.jsx';
 import Results from './pages/Results.jsx';
+import MyClass, { MyClassStudent } from './pages/MyClass.jsx';
 
 function Protected({ children }) {
   const { user, loading } = useAuth();
@@ -53,6 +54,10 @@ export default function App() {
         <Route path="records" element={<Records />} />
         <Route path="fees" element={<FeesRoute />} />
         <Route path="results" element={<Only roles={['STUDENT']}><Results /></Only>} />
+
+        {/* faculty who coordinate a class (the server checks this) */}
+        <Route path="my-class" element={<Only roles={['TEACHER']}><MyClass /></Only>} />
+        <Route path="my-class/students/:id" element={<Only roles={['TEACHER']}><MyClassStudent /></Only>} />
 
         {/* admin and faculty */}
         <Route path="lectures/new" element={<Only roles={STAFF}><LectureForm /></Only>} />

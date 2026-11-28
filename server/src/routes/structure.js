@@ -173,12 +173,18 @@ router.put('/subjects/:id', guard(async (req, res) => {
   res.json({ saved: true });
 }));
 
+// A faculty assignment alone never blocks deleting a subject: it is only a link, so it goes with the subject.
+// Real teaching history (lectures, attendance, exams) does block it, unless the admin confirms with ?force=1.
 router.delete('/subjects/:id', guard(async (req, res) => {
   const id = idOf(req);
-  const s = id && (await prisma.subject.findUnique({ where: { id }, include: { _count: { select: { assignments: true } } } }));
-  if (!s) return fail(res, 'Subject not found.', 404);
-  if (s._count.assignments) return fail(res, 'Faculty is assigned to this subject. Remove the assignments first.', 409);
-  await prisma.subject.delete({ where: { id } });
+  if (!id || !(await prisma.subject.findUnique({ where: { id }, select: { id: true } }))) return fail(res, 'Subject not found.', 404);
+  const of = { assignment: { subjectId: id } };
+  const [lectures, attendance, exams] = await Promise.all([prisma.lecture.count({ where: of }), prisma.attendance.count({ where: of }), prisma.exam.count({ where: of })]);
+  if ((lectures || attendance || exams) && req.query.force !== '1') {
+    return res.status(409).json({ code: 'HAS_DATA', error: `This subject already has ${lectures} lectures, ${attendance} attendance records and ${exams} exams.` });
+  }
+  // The database removes the lectures, attendance, exams and marks under each assignment (ON DELETE CASCADE).
+  await prisma.$transaction([prisma.assignment.deleteMany({ where: { subjectId: id } }), prisma.subject.delete({ where: { id } })]);
   res.json({ deleted: true });
 }));
 
@@ -270,6 +276,42 @@ router.put('/assignments', guard(async (req, res) => {
     saved += 1;
   }
   res.json({ saved });
+}));
+
+// ---------- class coordinators (one faculty member per section of a class) ----------
+router.get('/coordinators', guard(async (req, res) => {
+  const c = classQuery(req.query);
+  const cls = await resolveClass(c);
+  if (cls.error) return fail(res, cls.error);
+  const session = await currentSession();
+  if (!session) return fail(res, 'Create an academic session first.');
+  const rows = await prisma.coordinator.findMany({ where: { sessionId: session.id, courseId: c.courseId, departmentId: cls.department?.id ?? null, semester: c.semester } });
+  res.json({ sections: SECTIONS, assigned: Object.fromEntries(SECTIONS.map((sec) => [sec, rows.find((r) => r.section === sec)?.teacherId ?? ''])) });
+}));
+
+router.put('/coordinators', guard(async (req, res) => {
+  const p = z.object({
+    courseId: intId('Choose a course.'), departmentId: z.number().int().nullable().optional(), semester: intId('Choose a semester.'),
+    items: z.array(z.object({ section: z.enum(SECTIONS), teacherId: z.number().int().nullable() })).max(SECTIONS.length),
+  }).safeParse(req.body);
+  if (!p.success) return fail(res, p.error.issues[0].message);
+  const cls = await resolveClass(p.data);
+  if (cls.error) return fail(res, cls.error);
+  const session = await currentSession();
+  if (!session) return fail(res, 'Create an academic session first.');
+  const where = { sessionId: session.id, courseId: p.data.courseId, departmentId: cls.department?.id ?? null, semester: p.data.semester };
+
+  for (const it of p.data.items) {
+    const existing = await prisma.coordinator.findFirst({ where: { ...where, section: it.section } });
+    if (it.teacherId === null) {
+      if (existing) await prisma.coordinator.delete({ where: { id: existing.id } });
+    } else {
+      if (!(await prisma.teacher.findUnique({ where: { id: it.teacherId }, select: { id: true } }))) return fail(res, 'Choose a valid faculty member.');
+      if (existing) await prisma.coordinator.update({ where: { id: existing.id }, data: { teacherId: it.teacherId } });
+      else await prisma.coordinator.create({ data: { ...where, section: it.section, teacherId: it.teacherId } });
+    }
+  }
+  res.json({ saved: p.data.items.length });
 }));
 
 // ---------- promotion (semester by semester) ----------

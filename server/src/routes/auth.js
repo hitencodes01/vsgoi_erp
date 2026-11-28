@@ -8,6 +8,7 @@ import { requireAuth } from '../middleware/auth.js';
 import { signToken } from '../lib/token.js';
 import { passwordSchema } from '../lib/password.js';
 import { sendMail } from '../lib/mailer.js';
+import { isCoordinator } from '../lib/coordinator.js';
 
 const router = Router();
 
@@ -40,7 +41,7 @@ router.post('/login', limiter(20), async (req, res) => {
   const ok = user && user.active && (await bcrypt.compare(parsed.data.password, user.passwordHash));
   if (!ok) return res.status(401).json({ error: 'Email or password is incorrect.' });
 
-  res.json({ token: signToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword } });
+  res.json({ token: signToken(user), user: { id: user.id, name: user.name, email: user.email, role: user.role, mustChangePassword: user.mustChangePassword, isCoordinator: await isCoordinator(user) } });
 });
 
 router.get('/me', requireAuth, async (req, res) => {
@@ -48,7 +49,7 @@ router.get('/me', requireAuth, async (req, res) => {
     where: { id: req.user.id },
     select: { id: true, name: true, email: true, role: true, mustChangePassword: true },
   });
-  res.json({ user });
+  res.json({ user: { ...user, isCoordinator: await isCoordinator(user) } });
 });
 
 // Step 1 of "forgot password": email a 6-digit code. The reply is the same whether or not the email exists.

@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 import { iso, parseDate, today } from '../lib/dates.js';
-import { classLabel } from '../lib/classes.js';
+import { classLabel, yearOf } from '../lib/classes.js';
 import { fail, guard, idOf } from '../lib/http.js';
 import { currentSession } from '../lib/settings.js';
 
@@ -44,7 +44,7 @@ router.get('/', admin, guard(async (_req, res) => {
     const paid = sumPaid(d.payments);
     return {
       id: d.id, enrollmentNo: d.student.enrollmentNo, name: d.student.user.name, course: d.student.course.code, department: d.student.department?.code ?? '',
-      semester: d.student.semester, section: d.student.section, title: d.title, amount: d.amount, paid, balance: d.amount - paid, dueDate: iso(d.dueDate), status: statusOf(d.amount, paid, d.dueDate),
+      semester: d.student.semester, year: yearOf(d.student.semester), section: d.student.section, title: d.title, amount: d.amount, paid, balance: d.amount - paid, dueDate: iso(d.dueDate), status: statusOf(d.amount, paid, d.dueDate),
     };
   });
   res.json({ rows, totals: { amount: rows.reduce((s, r) => s + r.amount, 0), paid: rows.reduce((s, r) => s + r.paid, 0) } });

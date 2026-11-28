@@ -46,7 +46,9 @@ export default function MarkAttendance() {
           <h1>{data.lecture.subject}</h1>
           <p className="sub">{data.lecture.classLabel} · {fmtDay(data.lecture.date)} · {data.lecture.startTime}–{data.lecture.endTime}{data.lecture.room ? ` · ${data.lecture.room}` : ''}</p>
 
-          {!data.lecture.editable ? (
+          {data.lecture.suspended ? (
+            <p className="alert">This lecture is suspended{data.lecture.suspendReason ? ` (${data.lecture.suspendReason})` : ''}, so attendance can’t be marked. Resume it from the lectures list first.</p>
+          ) : !data.lecture.editable ? (
             <p className="alert">This lecture is in the future, so attendance can’t be marked yet.</p>
           ) : data.students.length === 0 ? (
             <p className="alert">No active students are in this class yet.</p>
